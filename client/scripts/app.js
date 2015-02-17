@@ -1,6 +1,7 @@
 // YOUR CODE HERE:
 var url  = "https://api.parse.com/1/classes/chatterbox";
 var roomName = '';
+var friends = [];
 
 var getMessages = function(){
   // if no filter provided, use this generic object
@@ -65,7 +66,7 @@ var displayMessages = function(msgObj){
     messageBox.attr('data-updatedAt', messages[i].updatedAt);
 
     messageBox.append('<div class="username"></div>');
-    $(messageBox.children('.username')).text('Username: ' + messages[i].username).html();
+    $(messageBox.children('.username')).text(messages[i].username).html();
 
     messageBox.append('<div class="message"></div>');
     $(messageBox.children('.message')).text('Message: ' + messages[i].text).html();
@@ -73,6 +74,12 @@ var displayMessages = function(msgObj){
     // Append to DOM
     $('#messageBox').prepend(messageBox); // change to prepend
   }
+
+  $('.username').click(function(){
+      addFriend.call(this);
+      showFriends.call(this);
+  });
+  showFriends();
 };
 
 var sendMessage = function(){
@@ -109,8 +116,30 @@ var changeRoom = function() {
   $('#messageBox').children('.messageBox').remove();
   // display messages for that room
   getMessages();
-
+  showFriends();
 };
+
+var addFriend = function(){
+  if(!_.contains(friends, $(this).text())) {
+    friends.push($(this).text());
+  }
+  else if(_.contains(friends, $(this).text())) {
+    removeFriend($(this).text());
+  }
+}
+
+var showFriends = function(){
+  for(var i = 0; i < friends.length; i++){
+    $('.messageBox:contains(' + friends[i] + ')' ).css('font-weight', 'bold');
+  }
+}
+
+var removeFriend = function(friend){
+    var idx = friends.indexOf(friend);
+    friends.splice(idx, 1);
+
+  $('.messageBox:contains(' + friend + ')' ).css('font-weight', 'normal');
+}
 
 // initialization
 $(document).ready(function(){
@@ -126,7 +155,7 @@ $(document).ready(function(){
 
   $('#roomChoiceButton').click(function(){
     changeRoom();
-  })
+  });
 });
 
 
