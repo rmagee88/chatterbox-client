@@ -3,16 +3,21 @@ var url  = "https://api.parse.com/1/classes/chatterbox";
 var roomName = '';
 
 var getMessages = function(){
+  // if no filter provided, use this generic object
+  filter = {
+    order:"-updatedAt",
+    limit:25,
+  };
+
+  // if there's a roomname, change the header and use for filter
   if (roomName) {
     $('h3').text( 'Where you at : ' + roomName );
+    filter.where  = JSON.stringify({roomname:roomName});
   }
 
   $.ajax({
     url: url,
-    data: {order:"-updatedAt",
-           where: JSON.stringify({roomname: roomName}),
-           limit: 25
-          },
+    data: filter,
     type: 'GET',
     success: function(data){
       console.log(data);
@@ -21,18 +26,41 @@ var getMessages = function(){
   });
 };
 
-var getLatestMessage() {
-  // jquery select the top message
-  // return date string associated with it
+var updateMessages = function() {
+  var latestMessageTime = getLatestMessageTime();
+  var filter = {
+    order:"-updatedAt",
+    where: JSON.stringify({
+      roomname: roomName,
+      createdAt: {$gt:
+                    {__type: "Date",
+                      iso:latestMessageTime}
+                  }
+      }),
+    limit: 100
+  };
 
-  return x;
-}
+  $.ajax({
+    url: url,
+    data: filter,
+    type: 'GET',
+    success: function(data){
+      console.log(data);
+                displayMessages(data);
+             }
+  });
+
+};
+
+var getLatestMessageTime = function() {
+  // jquery select the top message, return time string
+  return $($('#messageBox').children('.messageBox')[0]).attr('data-updatedAt');
+};
 
 var displayMessages = function(msgObj){
   var messages = msgObj.results;
-  // check
 
-  for(var i = 0; i < messages.length; i++){ // change loop
+  for(var i = messages.length - 1; i >= 0; i--){ // change loop
     var messageBox = $("<div></div>").addClass('messageBox');
     messageBox.attr('data-updatedAt', messages[i].updatedAt);
 
@@ -43,7 +71,7 @@ var displayMessages = function(msgObj){
     $(messageBox.children('.message')).text('Message: ' + messages[i].text).html();
 
     // Append to DOM
-    $('#main').append(messageBox); // change to prepend
+    $('#messageBox').prepend(messageBox); // change to prepend
   }
 };
 
@@ -66,7 +94,7 @@ var sendMessage = function(){
     contentType: 'application/json',
     success: function (data) {
       console.log('chatterbox: Message sent');
-      getMessages();
+      updateMessages();
     },
     error: function (data) {
       // see: https://developer.mozilla.org/en-US/docs/Web/API/console.error
@@ -78,22 +106,28 @@ var sendMessage = function(){
 var changeRoom = function() {
   roomName = $('#roomChoiceText').val();
   // clear messages
-  $('#main').children('.messageBox').remove();
+  $('#messageBox').children('.messageBox').remove();
   // display messages for that room
   getMessages();
 
 };
 
+// initialization
 $(document).ready(function(){
+  getMessages();
+
   $('#refreshMessagesButton').click(function(){
-    getMessages();
+    updateMessages();
   });
+
   $('#sendMessageButton').click(function(){
     sendMessage();
   });
+
   $('#roomChoiceButton').click(function(){
     changeRoom();
   })
 });
+
 
 
