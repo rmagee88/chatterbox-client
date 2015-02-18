@@ -8,9 +8,14 @@ var Message = Backbone.Model.extend({
 var Messages = Backbone.Collection.extend({
   model : Message,
   url : "https://api.parse.com/1/classes/chatterbox",
+  filter : {
+    order:"-updatedAt"
+  },
+  displayedMessages : {},
+  friends: {},
 
   loadMessages: function (){
-    this.fetch({data: { order: '-createdAt'}});
+    this.fetch({data: this.filter});
   },
 
   parse: function(response, options) {
@@ -26,13 +31,19 @@ var Messages = Backbone.Collection.extend({
 var FormView = Backbone.View.extend({
 
   events: {
-    "click #sendMessageButton": "handleSubmit"
+    "click #sendMessageButton": "handleSubmit",
+    "click #roomChoiceButton": "handleRoomChange"
+  },
+
+  initialize: function(){
+    this.collection.on('sync', this.stopSpinner, this);
   },
 
   handleSubmit: function() {
-
     var $text = this.$('#sendMessageBoxText');
     var $user = this.$('#sendMessageBoxUser');
+
+    this.startSpinner();
 
     this.collection.create({
       username: $user.val(),
@@ -40,14 +51,43 @@ var FormView = Backbone.View.extend({
     });
 
     $text.val('');
+  },
 
+  handleRoomChange: function() {
+    var room = $('#roomChoiceText').val();
+    this.collection.displayedMessages = {};
+
+    this.startSpinner();
+
+    if (room) {
+      this.collection.filter.where = JSON.stringify({roomname: room});
+    } else if (this.collection.filter.where) {
+      delete this.collection.filter.where;
+    }
+
+    $('#messageBox').children().remove();
+
+    this.collection.loadMessages();
+  },
+
+  startSpinner: function() {
+    this.$('.spinner').show();
+    this.$('#sendMessageButton').attr('disabled', 'true');
+    this.$('#roomChoiceButton').attr('disabled', 'true');
+  },
+
+  stopSpinner: function() {
+    this.$('.spinner').fadeOut('fast');
+    this.$('#sendMessageButton').attr('disabled', null);
+    this.$('#roomChoiceButton').attr('disabled', null);
   }
+
 });
 
 var MessageView = Backbone.View.extend({
 
   template: _.template('<div class="chat" data-id="<%= objectId %>"> \
-                      <div class="user"><%- username %></div> \
+                      <div class="user" data-user="<%- username %>"><%- username %></div> \
                       <div class="text"><%- text %></div> \
                       </div>'),
 
@@ -59,9 +99,37 @@ var MessageView = Backbone.View.extend({
 
 var MessagesView = Backbone.View.extend({
 
+  events: {
+    "click .user": "addFriend",
+  },
+
   initialize: function() {
     this.collection.on('sync', this.render, this);
-    this.displayedMessages = {};
+  },
+
+  addFriend: function(event){
+    var name = event.currentTarget.textContent;
+    if(!this.collection.friends[name]){
+      console.log("Adding " + name + " to friends list")
+      this.collection.friends[name] = true;
+      this.decorateFriend(name);
+    }
+    else {
+      console.log("Removing " + name + " from friends list")
+      delete this.collection.friends[name];
+      this.unDecorateFriend(name);
+    }
+
+
+
+  },
+
+  decorateFriend: function(name){
+    $("[data-user='" + name + "']").addClass('friend');
+  },
+
+  unDecorateFriend: function(name){
+    $("[data-user='" + name + "']").removeClass('friend');
   },
 
   render: function() {
@@ -69,10 +137,10 @@ var MessagesView = Backbone.View.extend({
   },
 
   renderMessage: function(message) {
-    if (!this.displayedMessages[message.get('objectId')]) {
+    if (!this.collection.displayedMessages[message.get('objectId')]) {
       var messageView = new MessageView({model: message});
       this.$el.prepend(messageView.render());
-      this.displayedMessages[message.get('objectId')] = true;
+      this.collection.displayedMessages[message.get('objectId')] = true;
     }
   }
 });

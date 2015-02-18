@@ -16,6 +16,7 @@
   <body>
     <div id="main">
       <h1>chatterbox</h1>
+      <div class='spinner' ><img src='images/spiffygif_46x46.gif'></div>
       <h3></h3>
       <div id='roomChoiceBox' class='inputDiv'>
         <h4>Select a Chatroom</h4>
@@ -27,7 +28,6 @@
         Username<input id='sendMessageBoxUser' type='text'></input>
         Message<input id='sendMessageBoxText' type='text'></input>
       </div>
-      <button id='refreshMessagesButton'>Get new messages</button>
       <button id='sendMessageButton'>Send message</button>
       <!-- Your HTML goes here! -->
       <div id='messageBox'>
@@ -39,6 +39,10 @@
           messages.loadMessages();
           var formView = new FormView({el: $('#main'), collection: messages});
           var messagesView = new MessagesView({el: $('#messageBox'), collection: messages});
+
+          setInterval(function(){
+            messages.loadMessages();
+          },1000);
         });
       </script>
     </div>
