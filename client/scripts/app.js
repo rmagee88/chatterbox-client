@@ -1,4 +1,85 @@
-// YOUR CODE HERE:
+// backbone implementation
+var Message = Backbone.Model.extend({
+  url : "https://api.parse.com/1/classes/chatterbox",
+  defaults : {username: '',
+             text: ''}
+});
+
+var Messages = Backbone.Collection.extend({
+  model : Message,
+  url : "https://api.parse.com/1/classes/chatterbox",
+
+  loadMessages: function (){
+    this.fetch({data: { order: '-createdAt'}});
+  },
+
+  parse: function(response, options) {
+    results = [];
+    for (var i = response.results.length-1; i >= 0; i--) {
+      results.push(response.results[i]);
+    }
+    return results;
+  }
+
+});
+
+var FormView = Backbone.View.extend({
+
+  events: {
+    "click #sendMessageButton": "handleSubmit"
+  },
+
+  handleSubmit: function() {
+
+    var $text = this.$('#sendMessageBoxText');
+    var $user = this.$('#sendMessageBoxUser');
+
+    this.collection.create({
+      username: $user.val(),
+      text: $text.val()
+    });
+
+    $text.val('');
+
+  }
+});
+
+var MessageView = Backbone.View.extend({
+
+  template: _.template('<div class="chat" data-id="<%= objectId %>"> \
+                      <div class="user"><%- username %></div> \
+                      <div class="text"><%- text %></div> \
+                      </div>'),
+
+  render: function() {
+    this.$el.html(this.template(this.model.attributes));
+    return this.$el;
+  }
+});
+
+var MessagesView = Backbone.View.extend({
+
+  initialize: function() {
+    this.collection.on('sync', this.render, this);
+    this.displayedMessages = {};
+  },
+
+  render: function() {
+    this.collection.forEach(this.renderMessage, this);
+  },
+
+  renderMessage: function(message) {
+    if (!this.displayedMessages[message.get('objectId')]) {
+      var messageView = new MessageView({model: message});
+      this.$el.prepend(messageView.render());
+      this.displayedMessages[message.get('objectId')] = true;
+    }
+  }
+});
+
+
+
+// jquery implementation
 var url  = "https://api.parse.com/1/classes/chatterbox";
 var roomName = '';
 var friends = [];
@@ -142,21 +223,21 @@ var removeFriend = function(friend){
 }
 
 // initialization
-$(document).ready(function(){
-  getMessages();
+// $(document).ready(function(){
+//   getMessages();
 
-  $('#refreshMessagesButton').click(function(){
-    updateMessages();
-  });
+//   $('#refreshMessagesButton').click(function(){
+//     updateMessages();
+//   });
 
-  $('#sendMessageButton').click(function(){
-    sendMessage();
-  });
+//   $('#sendMessageButton').click(function(){
+//     sendMessage();
+//   });
 
-  $('#roomChoiceButton').click(function(){
-    changeRoom();
-  });
-});
+//   $('#roomChoiceButton').click(function(){
+//     changeRoom();
+//   });
+// });
 
 
 
